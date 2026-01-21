@@ -91,12 +91,61 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Face Image *</label>
-                        {{ form.face_image }}
-                        <small class="form-text text-muted">
-                            Upload a clear, front-facing photo. Best results: good lighting, no glasses, neutral expression.
-                        </small>
+                        
+                        <!-- Tabs for Upload vs Camera -->
+                        <ul class="nav nav-tabs mb-3" id="faceTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab" aria-controls="upload" aria-selected="true">
+                                    <i class="fas fa-upload"></i> Upload File
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="camera-tab" data-bs-toggle="tab" data-bs-target="#camera" type="button" role="tab" aria-controls="camera" aria-selected="false">
+                                    <i class="fas fa-camera"></i> Take Photo
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="faceTabContent">
+                            <!-- Upload Tab -->
+                            <div class="tab-pane fade show active" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+                                {{ form.face_image }}
+                                <small class="form-text text-muted">
+                                    Upload a clear, front-facing photo. Best results: good lighting, no glasses, neutral expression.
+                                </small>
+                            </div>
+                            
+                            <!-- Camera Tab -->
+                            <div class="tab-pane fade" id="camera" role="tabpanel" aria-labelledby="camera-tab">
+                                <div class="text-center p-3 border rounded bg-light">
+                                    <div id="camera-interface">
+                                        <video id="video" width="100%" height="auto" autoplay style="max-width: 400px; border: 2px solid #ddd; border-radius: 8px; background-color: #000;"></video>
+                                        <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-primary" id="snap-btn">
+                                                <i class="fas fa-camera"></i> Capture Photo
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="result-interface" style="display:none;">
+                                        <img id="photo-preview" src="" class="img-fluid rounded mb-2" style="max-width: 400px; border: 2px solid #28a745;">
+                                        <div class="mt-2">
+                                            <div class="text-success mb-2 fw-bold"><i class="fas fa-check-circle"></i> Photo captured!</div>
+                                            <button type="button" class="btn btn-warning" id="retake-btn">
+                                                <i class="fas fa-redo"></i> Retake
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Hidden input to store base64 data -->
+                                    <input type="hidden" name="camera_image" id="camera_image">
+                                </div>
+                            </div>
+                        </div>
+                        
                         {% if form.face_image.errors %}
-                            <div class="text-danger small">{{ form.face_image.errors }}</div>
+                            <div class="text-danger small mt-2">{{ form.face_image.errors }}</div>
                         {% endif %}
                     </div>
                     
@@ -130,4 +179,100 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const snapBtn = document.getElementById('snap-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+        const photoPreview = document.getElementById('photo-preview');
+        const cameraImageInput = document.getElementById('camera_image');
+        const cameraInterface = document.getElementById('camera-interface');
+        const resultInterface = document.getElementById('result-interface');
+        const uploadTab = document.getElementById('upload-tab');
+        const cameraTab = document.getElementById('camera-tab');
+        
+        let stream = null;
+
+        // Start Camera when tab is clicked
+        cameraTab.addEventListener('click', async () => {
+            if (!stream) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { width: 640, height: 480 } 
+                    });
+                    video.srcObject = stream;
+                } catch (err) {
+                    console.error("Error accessing camera: ", err);
+                    alert("Could not access camera. Please allow camera permissions or use file upload.");
+                }
+            }
+        });
+
+        // Stop Camera when switching back to upload tab
+        uploadTab.addEventListener('click', () => {
+            stopCamera();
+        });
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                video.srcObject = null;
+            }
+        }
+
+        // Capture Photo
+        snapBtn.addEventListener('click', () => {
+            if (!stream) return;
+            
+            // Set canvas dimensions to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to base64
+            const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // Update UI
+            photoPreview.src = dataURL;
+            cameraImageInput.value = dataURL;
+            
+            cameraInterface.style.display = 'none';
+            resultInterface.style.display = 'block';
+            
+            // Optional: Stop camera after capture to save resources
+            // stopCamera();
+        });
+
+        // Retake
+        retakeBtn.addEventListener('click', async () => {
+            cameraImageInput.value = '';
+            cameraInterface.style.display = 'block';
+            resultInterface.style.display = 'none';
+            
+            // Restart camera if it was stopped
+            if (!stream) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { width: 640, height: 480 } 
+                    });
+                    video.srcObject = stream;
+                } catch (err) {
+                    console.error("Error restarting camera: ", err);
+                }
+            }
+        });
+        
+        // Ensure camera is stopped when leaving the page
+        window.addEventListener('beforeunload', () => {
+            stopCamera();
+        });
+    });
+</script>
 {% endblock %}

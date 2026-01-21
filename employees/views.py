@@ -5,11 +5,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count, Q
+from django.core.files.base import ContentFile
+import base64
+from datetime import date
+
 from .models import Employee, Department, Designation
 from .forms import EmployeeRegistrationForm
 from recognition.encoding_manager import EncodingManager
 from attendance.models import AttendanceRecord, DailyAttendanceSummary
-from datetime import date
 
 @login_required
 def dashboard(request):
@@ -80,13 +83,35 @@ def employee_list(request):
 
 @login_required
 def employee_register(request):
-    """Register new employee with face"""
+    """Register new employee with face (Upload or Webcam)"""
     if request.method == 'POST':
         form = EmployeeRegistrationForm(request.POST, request.FILES)
+        
+        # We use commit=False to potentially handle the webcam image before saving
         if form.is_valid():
-            employee = form.save()
+            employee = form.save(commit=False)
             
-            # Process face image if uploaded
+            # Check for webcam image data
+            camera_image_data = request.POST.get('camera_image')
+            
+            if camera_image_data:
+                try:
+                    # Format: "data:image/jpeg;base64,/9j/4AAQSk..."
+                    format_string, imgstr = camera_image_data.split(';base64,') 
+                    ext = format_string.split('/')[-1]
+                    
+                    # Create a ContentFile from the base64 data
+                    file_name = f'{employee.employee_id}_face.{ext}'
+                    data = ContentFile(base64.b64decode(imgstr), name=file_name)
+                    
+                    employee.face_image = data
+                except Exception as e:
+                    messages.error(request, f"Error processing webcam image: {e}")
+            
+            # Save the employee object to DB (now includes the image if present)
+            employee.save()
+            
+            # Process face image for encoding if it exists (either from upload or webcam)
             if employee.face_image:
                 encoding_manager = EncodingManager()
                 success, error_message = encoding_manager.save_employee_encoding(

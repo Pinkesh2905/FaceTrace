@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Live Recognition - FaceCognition{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Live Face Recognition</h1>
+    <button class="btn btn-primary" onclick="refreshEncodings()">
+        <i class="fas fa-sync-alt"></i> Refresh Encodings
+    </button>
+</div>
+
+<div class="row">
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-video"></i> Camera Feed
+                    {% if camera %}
+                        - {{ camera.name }}
+                    {% else %}
+                        - Webcam
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body p-0 text-center" style="background-color: #000;">
+                <img src="{% url 'video_feed' %}" width="100%" style="max-width: 800px;">
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">System Status</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>Encodings Loaded:</strong><br>
+                    <span class="badge bg-success">{{ encodings_count }} employees</span>
+                </p>
+                <p class="mb-2">
+                    <strong>Camera Status:</strong><br>
+                    <span class="badge bg-success">Active</span>
+                </p>
+                <p class="mb-0">
+                    <strong>Recognition:</strong><br>
+                    <span class="badge bg-primary">Real-time</span>
+                </p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-warning">
+                <h6 class="mb-0">Instructions</h6>
+            </div>
+            <div class="card-body">
+                <ul class="small mb-0">
+                    <li>Position face in front of camera</li>
+                    <li>Green box = Recognized</li>
+                    <li>Red box = Unknown</li>
+                    <li>Attendance auto-marked at 70%+ confidence</li>
+                    <li>Minimum 5 min between punches</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info mt-4">
+    <i class="fas fa-info-circle"></i>
+    <strong>Note:</strong> The system automatically detects faces and marks attendance when confidence is above 70%.
+    Make sure employees are properly registered with clear face images for best results.
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function refreshEncodings() {
+    fetch('{% url "refresh_encodings" %}')
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        })
+        .catch(error => {
+            alert('Error refreshing encodings');
+        });
+}
+</script>
+{% endblock %}

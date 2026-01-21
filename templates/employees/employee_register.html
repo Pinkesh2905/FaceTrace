@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Register Employee - FaceCognition{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Register New Employee</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Employee Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Employee ID *</label>
+                            {{ form.employee_id }}
+                            {% if form.employee_id.errors %}
+                                <div class="text-danger small">{{ form.employee_id.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status</label>
+                            {{ form.status }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name *</label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <div class="text-danger small">{{ form.first_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name *</label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <div class="text-danger small">{{ form.last_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email *</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="text-danger small">{{ form.email.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone</label>
+                            {{ form.phone }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Department *</label>
+                            {{ form.department }}
+                            {% if form.department.errors %}
+                                <div class="text-danger small">{{ form.department.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Designation *</label>
+                            {{ form.designation }}
+                            {% if form.designation.errors %}
+                                <div class="text-danger small">{{ form.designation.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Date of Joining *</label>
+                        {{ form.date_of_joining }}
+                        {% if form.date_of_joining.errors %}
+                            <div class="text-danger small">{{ form.date_of_joining.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Face Image *</label>
+                        {{ form.face_image }}
+                        <small class="form-text text-muted">
+                            Upload a clear, front-facing photo. Best results: good lighting, no glasses, neutral expression.
+                        </small>
+                        {% if form.face_image.errors %}
+                            <div class="text-danger small">{{ form.face_image.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-save"></i> Register Employee
+                        </button>
+                        <a href="{% url 'employee_list' %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-header">
+                <h6 class="mb-0">Tips for Best Results</h6>
+            </div>
+            <div class="card-body">
+                <ul class="small mb-0">
+                    <li>Use a clear, high-quality image</li>
+                    <li>Face should be front-facing</li>
+                    <li>Good lighting (avoid shadows)</li>
+                    <li>No sunglasses or face masks</li>
+                    <li>Neutral expression works best</li>
+                    <li>Single person in the photo</li>
+                    <li>Image size: minimum 400x400px</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

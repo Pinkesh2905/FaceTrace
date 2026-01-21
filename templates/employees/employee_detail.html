@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ employee.get_full_name }} - FaceCognition{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ employee.get_full_name }}</h1>
+    <a href="{% url 'employee_list' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Employee Details</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if employee.face_image %}
+                    <img src="{{ employee.face_image.url }}" class="img-fluid rounded mb-3" style="max-width: 200px;">
+                {% else %}
+                    <div class="bg-light p-5 mb-3 rounded">
+                        <i class="fas fa-user fa-5x text-secondary"></i>
+                    </div>
+                {% endif %}
+                
+                <h4>{{ employee.employee_id }}</h4>
+                <p class="text-muted">{{ employee.designation.name|default:"No Designation" }}</p>
+                
+                <div class="mb-2">
+                    {% if employee.is_face_registered %}
+                        <span class="badge bg-success">✓ Face Registered</span>
+                    {% else %}
+                        <span class="badge bg-danger">✗ Face Not Registered</span>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-2">
+                    <span class="badge {% if employee.status == 'active' %}bg-success{% elif employee.status == 'inactive' %}bg-secondary{% else %}bg-warning{% endif %}">
+                        {{ employee.get_status_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Contact Information</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>Email:</strong><br>
+                    {{ employee.email }}
+                </p>
+                <p class="mb-2">
+                    <strong>Phone:</strong><br>
+                    {{ employee.phone|default:"Not provided" }}
+                </p>
+                <p class="mb-0">
+                    <strong>Department:</strong><br>
+                    {{ employee.department.name|default:"Not assigned" }}
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Attendance</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Type</th>
+                                <th>Camera</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in recent_attendance %}
+                            <tr>
+                                <td>{{ record.timestamp|date:"M d, Y H:i" }}</td>
+                                <td>
+                                    <span class="badge {% if record.punch_type == 'IN' %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ record.punch_type }}
+                                    </span>
+                                </td>
+                                <td>{{ record.camera.name|default:"N/A" }}</td>
+                                <td>{{ record.confidence_score|floatformat:1 }}%</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No attendance records yet</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Monthly Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Check In</th>
+                                <th>Check Out</th>
+                                <th>Hours</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for summary in monthly_summaries %}
+                            <tr>
+                                <td>{{ summary.date|date:"M d, Y" }}</td>
+                                <td>{{ summary.check_in_time|time:"H:i"|default:"—" }}</td>
+                                <td>{{ summary.check_out_time|time:"H:i"|default:"—" }}</td>
+                                <td>{{ summary.total_hours|default:"—" }}</td>
+                                <td>
+                                    {% if summary.is_present %}
+                                        <span class="badge bg-success">Present</span>
+                                        {% if summary.is_late %}
+                                            <span class="badge bg-warning">Late</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-danger">Absent</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No summary data yet</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Update {{ employee.get_full_name }} - FaceCognition{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Update Employee</h1>
+    <a href="{% url 'employees:employee_detail' employee.employee_id %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Details
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Employee Information - {{ employee.employee_id }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name *</label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <div class="text-danger small">{{ form.first_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name *</label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <div class="text-danger small">{{ form.last_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email *</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="text-danger small">{{ form.email.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone</label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                                <div class="text-danger small">{{ form.phone.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Department *</label>
+                            {{ form.department }}
+                            {% if form.department.errors %}
+                                <div class="text-danger small">{{ form.department.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Designation *</label>
+                            {{ form.designation }}
+                            {% if form.designation.errors %}
+                                <div class="text-danger small">{{ form.designation.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Joining *</label>
+                            {{ form.date_of_joining }}
+                            {% if form.date_of_joining.errors %}
+                                <div class="text-danger small">{{ form.date_of_joining.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Leaving</label>
+                            {{ form.date_of_leaving }}
+                            {% if form.date_of_leaving.errors %}
+                                <div class="text-danger small">{{ form.date_of_leaving.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-danger small">{{ form.status.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        To update the face image, use the <a href="{% url 'employees:employee_update_face' employee.employee_id %}">Update Face Image</a> option.
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> Update Employee
+                        </button>
+                        <a href="{% url 'employees:employee_detail' employee.employee_id %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Current Information</h6>
+            </div>
+            <div class="card-body text-center">
+                {% if employee.face_image %}
+                    <img src="{{ employee.face_image.url }}" class="img-fluid rounded mb-3" style="max-width: 200px;">
+                {% else %}
+                    <div class="bg-light p-5 mb-3 rounded">
+                        <i class="fas fa-user fa-5x text-secondary"></i>
+                    </div>
+                {% endif %}
+                
+                <h5>{{ employee.employee_id }}</h5>
+                <p class="text-muted mb-2">{{ employee.get_full_name }}</p>
+                
+                <div class="mb-2">
+                    {% if employee.is_face_registered %}
+                        <span class="badge bg-success">✓ Face Registered</span>
+                    {% else %}
+                        <span class="badge bg-danger">✗ Face Not Registered</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

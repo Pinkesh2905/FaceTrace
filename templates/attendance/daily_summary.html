@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Daily Summary - FaceCognition{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Daily Attendance Summary</h1>
+
+<!-- Date Selector -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Select Date</label>
+                <input type="date" name="date" class="form-control" value="{{ selected_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">View</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <h3>{{ total_employees }}</h3>
+            <p>Total Employees</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card bg-success text-white">
+            <h3>{{ present_count }}</h3>
+            <p>Present</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card bg-danger text-white">
+            <h3>{{ absent_count }}</h3>
+            <p>Absent</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card bg-warning text-white">
+            <h3>{{ late_count }}</h3>
+            <p>Late Arrivals</p>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Attendance for {{ selected_date|date:"F d, Y" }}</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Employee ID</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Total Hours</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for summary in summaries %}
+                    <tr>
+                        <td><strong>{{ summary.employee.employee_id }}</strong></td>
+                        <td>{{ summary.employee.get_full_name }}</td>
+                        <td>{{ summary.employee.department.name|default:"N/A" }}</td>
+                        <td>
+                            {% if summary.check_in_time %}
+                                {{ summary.check_in_time|time:"H:i" }}
+                                {% if summary.is_late %}
+                                    <span class="badge bg-warning text-dark">Late</span>
+                                {% endif %}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if summary.check_out_time %}
+                                {{ summary.check_out_time|time:"H:i" }}
+                                {% if summary.is_early_departure %}
+                                    <span class="badge bg-warning text-dark">Early</span>
+                                {% endif %}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if summary.total_hours %}
+                                {{ summary.total_hours }} hrs
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if summary.is_present %}
+                                <span class="badge bg-success">Present</span>
+                            {% else %}
+                                <span class="badge bg-danger">Absent</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No attendance data for this date</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

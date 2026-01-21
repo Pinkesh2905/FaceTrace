@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Attendance History - FaceCognition{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Attendance History</h1>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Employee</label>
+                <select name="employee_id" class="form-control">
+                    <option value="">All Employees</option>
+                    {% for emp in employees %}
+                        <option value="{{ emp.employee_id }}" {% if employee_id == emp.employee_id %}selected{% endif %}>
+                            {{ emp.employee_id }} - {{ emp.get_full_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Records Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Punch Records</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Employee ID</th>
+                        <th>Employee Name</th>
+                        <th>Type</th>
+                        <th>Camera</th>
+                        <th>Confidence</th>
+                        <th>Manual</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td>{{ record.timestamp|date:"M d, Y - H:i:s" }}</td>
+                        <td><strong>{{ record.employee.employee_id }}</strong></td>
+                        <td>{{ record.employee.get_full_name }}</td>
+                        <td>
+                            <span class="badge {% if record.punch_type == 'IN' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ record.punch_type }}
+                            </span>
+                        </td>
+                        <td>{{ record.camera.name|default:"N/A" }}</td>
+                        <td>
+                            <span class="{% if record.confidence_score >= 80 %}text-success{% elif record.confidence_score >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                {{ record.confidence_score|floatformat:1 }}%
+                            </span>
+                        </td>
+                        <td>
+                            {% if record.is_manual %}
+                                <span class="badge bg-warning">Manual</span>
+                            {% else %}
+                                <span class="badge bg-info">Auto</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No attendance records found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info mt-3">
+    <i class="fas fa-info-circle"></i>
+    <strong>Note:</strong> Showing latest 100 records. Use filters to find specific records.
+</div>
+{% endblock %}

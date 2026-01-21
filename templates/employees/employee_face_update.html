@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Face - {{ employee.get_full_name }} - FaceCognition{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Update Face Image</h1>
+    <a href="{% url 'employees:employee_detail' employee.employee_id %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Details
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Upload New Face Image</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Important:</strong> Uploading a new face image will replace the existing one and regenerate face encodings.
+                </div>
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Current Face Image</label>
+                        <div class="text-center mb-3">
+                            {% if employee.face_image %}
+                                <img src="{{ employee.face_image.url }}" class="img-fluid rounded" style="max-width: 300px;">
+                            {% else %}
+                                <div class="bg-light p-5 rounded">
+                                    <i class="fas fa-user fa-5x text-secondary"></i>
+                                    <p class="text-muted mt-3">No image uploaded</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">New Face Image *</label>
+                        {{ form.face_image }}
+                        <small class="form-text text-muted d-block mt-2">
+                            {{ form.face_image.help_text }}
+                        </small>
+                        {% if form.face_image.errors %}
+                            <div class="text-danger small mt-2">{{ form.face_image.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-upload"></i> Upload & Encode Face
+                        </button>
+                        <a href="{% url 'employees:employee_detail' employee.employee_id %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card bg-light">
+            <div class="card-header">
+                <h6 class="mb-0">Tips for Best Face Recognition</h6>
+            </div>
+            <div class="card-body">
+                <h6 class="text-success"><i class="fas fa-check-circle"></i> DO:</h6>
+                <ul class="small mb-3">
+                    <li>Use a clear, high-quality image (minimum 400x400px)</li>
+                    <li>Ensure the face is front-facing and centered</li>
+                    <li>Use good, even lighting (avoid harsh shadows)</li>
+                    <li>Maintain a neutral expression</li>
+                    <li>Ensure the entire face is visible</li>
+                    <li>Use recent photos</li>
+                </ul>
+                
+                <h6 class="text-danger"><i class="fas fa-times-circle"></i> DON'T:</h6>
+                <ul class="small mb-0">
+                    <li>Wear sunglasses or face masks</li>
+                    <li>Use blurry or low-resolution images</li>
+                    <li>Include multiple people in the photo</li>
+                    <li>Use extreme angles or side profiles</li>
+                    <li>Have objects obscuring the face</li>
+                    <li>Use images with heavy filters or editing</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">Current Status</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td><strong>Employee ID:</strong></td>
+                        <td>{{ employee.employee_id }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Name:</strong></td>
+                        <td>{{ employee.get_full_name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Face Status:</strong></td>
+                        <td>
+                            {% if employee.is_face_registered %}
+                                <span class="badge bg-success">✓ Registered</span>
+                            {% else %}
+                                <span class="badge bg-danger">✗ Not Registered</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if employee.face_registered_at %}
+                    <tr>
+                        <td><strong>Registered:</strong></td>
+                        <td>{{ employee.face_registered_at|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

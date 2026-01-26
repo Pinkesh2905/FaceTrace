@@ -5,19 +5,20 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib.auth import views as auth_views
+from accounts import views as account_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # Auth
-    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    # Root URL -> Public Landing Page
+    path('', account_views.landing_page, name='home'),
     
-    # Apps
-    path('', include('employees.urls')),
-    path('recognition/', include('recognition.urls')),
-    path('attendance/', include('attendance.urls')),
+    # App URLs
+    path('', include('employees.urls')),     # Includes /dashboard/ and /employees/
+    path('', include('accounts.urls')),      # Auth: Login, Logout, Company Registration
+    path('recognition/', include('recognition.urls')),   # Live Face Recognition
+    path('attendance/', include('attendance.urls')),     # Attendance Reports
+    # path('cameras/', include('cameras.urls')),           # Camera Management
 ]
 
 # Media files in development

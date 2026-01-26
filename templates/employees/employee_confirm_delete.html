@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Employee - FaceTrace{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card border-danger shadow">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h5>
+            </div>
+            <div class="card-body text-center p-4">
+                <p class="lead">Are you sure you want to delete employee <strong>{{ employee.get_full_name }}</strong> ({{ employee.employee_id }})?</p>
+                
+                <p class="text-danger small mb-4">
+                    This action will permanently delete:<br>
+                    • Employee Record<br>
+                    • Face Data & Photos<br>
+                    • Attendance History
+                </p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <a href="{% url 'employee_list' %}" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-danger">Yes, Delete Employee</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

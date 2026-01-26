@@ -1,52 +1,63 @@
 """
-Employee Master Models
+Employee Models - Multi-Tenant Isolation
 """
 from django.db import models
 from django.core.validators import RegexValidator
-import os
+from accounts.models import Company
 
 class Department(models.Model):
-    """Organization departments"""
-    name = models.CharField(max_length=100, unique=True)
-    code = models.CharField(max_length=20, unique=True)
+    """Company-specific Departments"""
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='departments')
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=20)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         db_table = 'departments'
+        unique_together = ['company', 'code'] # Code only needs to be unique within the company
         ordering = ['name']
     
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.company.name})"
 
 class Designation(models.Model):
-    """Employee designations/positions"""
-    name = models.CharField(max_length=100, unique=True)
-    code = models.CharField(max_length=20, unique=True)
+    """Company-specific Designations"""
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='designations')
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=20)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         db_table = 'designations'
+        unique_together = ['company', 'code']
         ordering = ['name']
     
     def __str__(self):
         return self.name
 
 class Employee(models.Model):
-    """Main employee model with face data"""
+    """
+    The Passive Entity.
+    Identified by Face, belongs to a Company.
+    Does NOT have a User account.
+    """
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('inactive', 'Inactive'),
         ('suspended', 'Suspended'),
     ]
     
+    # Tenancy
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='employees')
+    
     employee_id = models.CharField(
         max_length=20, 
-        unique=True,
         validators=[RegexValidator(r'^[A-Z0-9]+$', 'Only uppercase letters and numbers allowed')]
     )
+    
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
-    email = models.EmailField(unique=True)
+    email = models.EmailField() # Not unique globally anymore, only unique per company ideally
     phone = models.CharField(max_length=15, blank=True, null=True)
     
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, related_name='employees')
@@ -66,17 +77,18 @@ class Employee(models.Model):
     class Meta:
         db_table = 'employees'
         ordering = ['-created_at']
+        unique_together = ['company', 'employee_id'] # ID must be unique ONLY within the company
         indexes = [
-            models.Index(fields=['employee_id']),
+            models.Index(fields=['company', 'employee_id']),
             models.Index(fields=['status']),
         ]
     
     def __str__(self):
-        return f"{self.employee_id} - {self.get_full_name()}"
+        return f"{self.employee_id} - {self.first_name}"
     
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
     
     def get_encoding_filename(self):
-        """Generate encoding file path"""
-        return f"face_encodings/{self.employee_id}.npy"
+        # Namespace encodings by company ID to prevent collisions
+        return f"face_encodings/{self.company.id}/{self.employee_id}.npy"

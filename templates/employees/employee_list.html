@@ -1,49 +1,47 @@
 {% extends 'base.html' %}
 
-{% block title %}Employees - FaceCognition{% endblock %}
+{% block title %}Employees - FaceTrace{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Employees</h1>
-    <a href="{% url 'employee_register' %}" class="btn btn-success">
-        <i class="fas fa-user-plus"></i> Register New Employee
+    <a href="{% url 'employee_register' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add New Employee
     </a>
 </div>
 
-<!-- Filters -->
-<div class="card mb-4">
+<div class="card">
     <div class="card-body">
-        <form method="get" class="row g-3">
+        <form method="get" class="row g-3 mb-4">
             <div class="col-md-4">
-                <input type="text" name="search" class="form-control" placeholder="Search by ID, Name, Email" value="{{ search_query }}">
+                <input type="text" name="search" class="form-control" placeholder="Search by ID, Name or Email" value="{{ search_query|default:'' }}">
             </div>
             <div class="col-md-3">
-                <select name="status" class="form-control">
-                    <option value="">All Status</option>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
                     <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
                     <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
                     <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Suspended</option>
                 </select>
             </div>
             <div class="col-md-2">
-                <button type="submit" class="btn btn-primary">Filter</button>
+                <button type="submit" class="btn btn-secondary w-100">Filter</button>
             </div>
+            {% if search_query or status_filter %}
+            <div class="col-md-2">
+                <a href="{% url 'employee_list' %}" class="btn btn-outline-secondary w-100">Clear</a>
+            </div>
+            {% endif %}
         </form>
-    </div>
-</div>
-
-<!-- Employee Table -->
-<div class="card">
-    <div class="card-body">
+        
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th>Employee ID</th>
+                        <th>ID</th>
+                        <th>Face</th>
                         <th>Name</th>
                         <th>Department</th>
-                        <th>Designation</th>
-                        <th>Face Status</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -51,31 +49,41 @@
                 <tbody>
                     {% for employee in employees %}
                     <tr>
-                        <td><strong>{{ employee.employee_id }}</strong></td>
-                        <td>{{ employee.get_full_name }}</td>
-                        <td>{{ employee.department.name|default:"N/A" }}</td>
-                        <td>{{ employee.designation.name|default:"N/A" }}</td>
+                        <td>{{ employee.employee_id }}</td>
                         <td>
-                            {% if employee.is_face_registered %}
-                                <span class="badge bg-success">✓ Registered</span>
+                            {% if employee.face_image %}
+                                <img src="{{ employee.face_image.url }}" class="rounded-circle" width="40" height="40" style="object-fit: cover;">
                             {% else %}
-                                <span class="badge bg-danger">✗ Not Registered</span>
+                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user"></i>
+                                </div>
                             {% endif %}
                         </td>
                         <td>
-                            <span class="badge {% if employee.status == 'active' %}bg-success{% elif employee.status == 'inactive' %}bg-secondary{% else %}bg-warning{% endif %}">
-                                {{ employee.get_status_display }}
-                            </span>
+                            <a href="{% url 'employee_detail' employee.employee_id %}" class="text-decoration-none fw-bold">
+                                {{ employee.get_full_name }}
+                            </a>
+                        </td>
+                        <td>{{ employee.department.name|default:"-" }}</td>
+                        <td>
+                            {% if employee.status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ employee.status|title }}</span>
+                            {% endif %}
                         </td>
                         <td>
-                            <a href="{% url 'employee_detail' employee.employee_id %}" class="btn btn-sm btn-primary">
-                                <i class="fas fa-eye"></i> View
+                            <a href="{% url 'employee_detail' employee.employee_id %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'employee_delete' employee.employee_id %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                                <i class="fas fa-trash"></i>
                             </a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center">No employees found</td>
+                        <td colspan="6" class="text-center py-4 text-muted">No employees found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

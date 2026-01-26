@@ -1,30 +1,34 @@
 """
-Camera Management Models
+Camera Models - Multi-Tenant Isolation
 """
 from django.db import models
+from accounts.models import Company
 
 class Location(models.Model):
-    """Physical locations where cameras are installed"""
+    """Physical locations (e.g., Gate 1, Floor 2) within a Company"""
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='locations')
     name = models.CharField(max_length=100)
-    code = models.CharField(max_length=20, unique=True)
+    code = models.CharField(max_length=20)
     address = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         db_table = 'locations'
+        unique_together = ['company', 'code']
         ordering = ['name']
     
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.company.name})"
 
 class Camera(models.Model):
-    """Camera configuration"""
+    """Camera configuration for a specific Company"""
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('inactive', 'Inactive'),
         ('maintenance', 'Under Maintenance'),
     ]
     
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='cameras')
     name = models.CharField(max_length=100)
     location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='cameras')
     
@@ -45,7 +49,6 @@ class Camera(models.Model):
         return f"{self.name} - {self.location.name}"
     
     def get_stream_source_int(self):
-        """Convert stream source to int if it's a number, else return as is"""
         try:
             return int(self.stream_source)
         except ValueError:

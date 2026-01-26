@@ -92,11 +92,16 @@
                                 <i class="fas fa-clock"></i> Attendance
                             </a>
                         </li>
+                        
+                        <!-- Only show Admin Panel link to Superusers -->
+                        {% if user.is_superuser %}
                         <li class="nav-item">
                             <a class="nav-link" href="/admin/">
                                 <i class="fas fa-cog"></i> Admin Panel
                             </a>
                         </li>
+                        {% endif %}
+
                         <li class="nav-item mt-4">
                             <a class="nav-link" href="{% url 'logout' %}">
                                 <i class="fas fa-sign-out-alt"></i> Logout
@@ -106,6 +111,7 @@
                     
                     <div class="text-white text-center mt-5 small">
                         <p>User: {{ user.username }}</p>
+                        <p class="text-white-50">{{ user.company.name|default:"Platform Admin" }}</p>
                     </div>
                 </div>
             </nav>

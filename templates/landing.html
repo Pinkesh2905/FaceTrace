@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceCognition Platform - The OS for Identity</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('https://img.freepik.com/free-vector/digital-face-recognition-technology-background_1017-30064.jpg');
+            background-size: cover;
+            opacity: 0.1;
+        }
+        .feature-card {
+            border: none;
+            transition: transform 0.3s;
+            height: 100%;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .icon-box {
+            width: 60px;
+            height: 60px;
+            background: #e9ecef;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            color: #1e3c72;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-brain me-2"></i>FaceCognition
+            </a>
+            <div class="d-flex">
+                <a href="{% url 'login' %}" class="btn btn-outline-light me-2">Log In</a>
+                <a href="{% url 'register_company' %}" class="btn btn-primary">Start Free Trial</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="container position-relative">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold mb-4">The Operating System for Identity</h1>
+                    <p class="lead mb-4">
+                        Seamlessly manage attendance, access control, and workforce analytics using facial recognition. 
+                        A unified platform for companies of all sizes.
+                    </p>
+                    <div class="d-grid gap-2 d-sm-flex">
+                        <a href="{% url 'register_company' %}" class="btn btn-light btn-lg px-4 gap-3">Register Company</a>
+                        <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-4">Employee Login</a>
+                    </div>
+                </div>
+                <div class="col-lg-6 d-none d-lg-block text-center">
+                    <img src="https://cdni.iconscout.com/illustration/premium/thumb/face-recognition-2776856-2320141.png" alt="Face AI" class="img-fluid" style="max-height: 400px; filter: drop-shadow(0 0 20px rgba(0,0,0,0.3));">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">Why Choose FaceCognition?</h2>
+                <p class="text-muted">Built for factories, offices, and secure facilities.</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card feature-card p-4 shadow-sm">
+                        <div class="card-body">
+                            <div class="icon-box"><i class="fas fa-id-card-alt"></i></div>
+                            <h4>Identity as Key</h4>
+                            <p class="text-muted">No cards, no passwords. Your face is your identity across the entire platform.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card p-4 shadow-sm">
+                        <div class="card-body">
+                            <div class="icon-box"><i class="fas fa-video"></i></div>
+                            <h4>Live Recognition</h4>
+                            <p class="text-muted">Real-time attendance marking using standard CCTV or webcams. Zero-touch processing.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card p-4 shadow-sm">
+                        <div class="card-body">
+                            <div class="icon-box"><i class="fas fa-chart-line"></i></div>
+                            <h4>Smart Analytics</h4>
+                            <p class="text-muted">Automated attendance reports, late arrival tracking, and daily summaries.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-5">
+        <div class="container text-center">
+            <div class="bg-primary text-white rounded-3 p-5 shadow">
+                <h2 class="fw-bold mb-3">Ready to modernize your workforce?</h2>
+                <p class="mb-4">Join hundreds of companies using FaceCognition to streamline operations.</p>
+                <a href="{% url 'register_company' %}" class="btn btn-light btn-lg">Register Your Company Now</a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-dark text-white py-4 mt-auto">
+        <div class="container text-center">
+            <p class="mb-0">&copy; 2026 FaceCognition Platform. All rights reserved.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

@@ -50,9 +50,20 @@
                 <a href="{% url 'daily_summary' %}" class="btn btn-info me-2">
                     <i class="fas fa-calendar-day"></i> Today's Summary
                 </a>
-                <a href="/admin/" class="btn btn-secondary">
-                    <i class="fas fa-cog"></i> Admin Panel
+                
+                <!-- Multi-Admin Management -->
+                {% if user.role == 'employer_admin' %}
+                <a href="{% url 'company_users_list' %}" class="btn btn-dark me-2">
+                    <i class="fas fa-users-cog"></i> Manage Admins
                 </a>
+                {% endif %}
+                
+                <!-- Only show Admin Panel button to Superusers -->
+                {% if user.is_superuser %}
+                <a href="/admin/" class="btn btn-secondary">
+                    <i class="fas fa-cog"></i> Platform Admin
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>

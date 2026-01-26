@@ -1,5 +1,5 @@
 """
-Employee Forms
+Employee Forms - Multi-Tenant Aware
 """
 from django import forms
 from .models import Employee, Department, Designation
@@ -33,3 +33,29 @@ class EmployeeRegistrationForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-control'}),
             'face_image': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, user, *args, **kwargs):
+        """
+        Initialize form with the logged-in user to filter querysets
+        """
+        super(EmployeeRegistrationForm, self).__init__(*args, **kwargs)
+        self.user = user
+        
+        # Filter ForeignKeys to only show data from the user's company
+        if self.user.company:
+            self.fields['department'].queryset = Department.objects.filter(company=self.user.company)
+            self.fields['designation'].queryset = Designation.objects.filter(company=self.user.company)
+        else:
+            # Fallback for superusers without company (optional)
+            self.fields['department'].queryset = Department.objects.none()
+            self.fields['designation'].queryset = Designation.objects.none()
+
+    def save(self, commit=True):
+        """
+        Auto-assign the company from the logged-in user
+        """
+        employee = super(EmployeeRegistrationForm, self).save(commit=False)
+        employee.company = self.user.company
+        if commit:
+            employee.save()
+        return employee

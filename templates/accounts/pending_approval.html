@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Verification Pending - FaceTrace{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 text-center">
+        <div class="card shadow p-5">
+            <div class="mb-4 text-warning">
+                <i class="fas fa-clock fa-5x"></i>
+            </div>
+            <h2 class="mb-3">Application Under Review</h2>
+            <p class="lead mb-4">
+                Thank you for registering <strong>{{ request.user.company.name }}</strong>.
+            </p>
+            <p class="text-muted mb-4">
+                Our compliance team is currently verifying your business documents. 
+                This process usually takes 24-48 hours. You will receive an email once your account is active.
+            </p>
+            <hr>
+            <p>
+                Status: <span class="badge bg-warning text-dark">Pending Verification</span>
+            </p>
+            <a href="{% url 'logout' %}" class="btn btn-outline-secondary mt-3">Logout</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

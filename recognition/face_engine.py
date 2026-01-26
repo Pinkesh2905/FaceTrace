@@ -1,153 +1,106 @@
-"""
-Core Face Recognition Engine using face_recognition library
-"""
-import cv2
 import face_recognition
 import numpy as np
+import cv2
+import pickle
 from pathlib import Path
-from django.conf import settings
 
 class FaceEngine:
     """
-    Core face recognition engine
-    Handles face detection, encoding, and recognition
+    Core face recognition logic wrapper.
+    Ensures consistent RGB processing for both registration and recognition.
     """
     
-    def __init__(self):
-        self.tolerance = 0.6  # Lower = stricter matching
-        self.model = 'hog'  # 'hog' is faster, 'cnn' is more accurate but needs GPU
-        
-    def detect_faces(self, image):
+    def encode_face_from_file(self, file_path):
         """
-        Detect faces in an image
-        Returns list of face locations
+        Generates encoding from an image file (Registration).
+        Returns (encoding, face_count)
         """
-        # Convert BGR (OpenCV) to RGB (face_recognition)
-        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        
-        # Find all face locations
-        face_locations = face_recognition.face_locations(rgb_image, model=self.model)
-        
-        return face_locations
-    
-    def encode_face(self, image, face_location=None):
+        try:
+            # load_image_file loads image in RGB format automatically
+            image = face_recognition.load_image_file(file_path)
+            
+            # Detect faces
+            # We use the default model here as accuracy > speed for registration
+            face_locations = face_recognition.face_locations(image)
+            
+            if not face_locations:
+                return None, 0
+                
+            encodings = face_recognition.face_encodings(image, face_locations)
+            
+            # Return the first found face encoding and the total count
+            return encodings[0], len(face_locations)
+        except Exception as e:
+            print(f"Error encoding file {file_path}: {e}")
+            return None, 0
+
+    def recognize_face(self, unknown_encoding, known_encodings_dict, tolerance=0.6):
         """
-        Generate face encoding from image
-        Returns 128-dimensional face encoding vector
-        """
-        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        
-        if face_location is not None:
-            # Use provided face location
-            encodings = face_recognition.face_encodings(rgb_image, [face_location])
-        else:
-            # Auto-detect face
-            encodings = face_recognition.face_encodings(rgb_image)
-        
-        if encodings:
-            return encodings[0]
-        return None
-    
-    def encode_face_from_file(self, image_path):
-        """
-        Load image from file and generate encoding.
-        Returns (encoding, face_count) to allow callers to validate quality.
-        """
-        image = face_recognition.load_image_file(image_path)
-        encodings = face_recognition.face_encodings(image)
-        
-        if encodings:
-            return encodings[0], len(encodings)
-        return None, 0
-    
-    def compare_faces(self, known_encoding, face_encoding):
-        """
-        Compare a face encoding against a known encoding
-        Returns (match, distance)
-        """
-        if known_encoding is None or face_encoding is None:
-            return False, 1.0
-        
-        # Calculate face distance
-        distance = face_recognition.face_distance([known_encoding], face_encoding)[0]
-        
-        # Check if match
-        matches = face_recognition.compare_faces(
-            [known_encoding], 
-            face_encoding, 
-            tolerance=self.tolerance
-        )
-        
-        return matches[0], float(distance)
-    
-    def recognize_face(self, face_encoding, known_encodings_dict):
-        """
-        Recognize face against database of known encodings
+        Compares an encoding against a dictionary of {id: encoding}.
         
         Args:
-            face_encoding: encoding to match
-            known_encodings_dict: {employee_id: encoding}
+            unknown_encoding: The 128D vector from the live camera.
+            known_encodings_dict: Dictionary {employee_id: known_encoding}.
+            tolerance: Distance threshold. 
+                       0.6 is default. 
+                       0.5 is strict. 
+                       0.55 is a good balance for webcam.
         
         Returns:
-            (employee_id, confidence, distance) or (None, 0, 1.0)
+            (best_match_id, confidence_percent, min_distance)
         """
-        # NOTE: numpy arrays cannot be used in boolean context ("if face_encoding")
-        if face_encoding is None or not known_encodings_dict:
-            return None, 0, 1.0
-        
-        best_match = None
-        best_distance = 1.0
-        
-        for employee_id, known_encoding in known_encodings_dict.items():
-            is_match, distance = self.compare_faces(known_encoding, face_encoding)
+        if unknown_encoding is None or not known_encodings_dict:
+            return None, 0.0, 1.0
             
-            if is_match and distance < best_distance:
-                best_distance = distance
-                best_match = employee_id
+        known_ids = list(known_encodings_dict.keys())
+        known_encodings_list = list(known_encodings_dict.values())
         
-        if best_match:
-            # Calculate confidence percentage (inverse of distance)
-            confidence = max(0, min(100, (1 - best_distance) * 100))
-            return best_match, confidence, best_distance
+        # Calculate Euclidean distance to all known faces
+        # Lower distance = Better match
+        distances = face_recognition.face_distance(known_encodings_list, unknown_encoding)
         
-        return None, 0, 1.0
-    
-    def draw_face_box(self, frame, face_location, name=None, confidence=None, color=(0, 255, 0)):
-        """
-        Draw bounding box around detected face
-        """
-        top, right, bottom, left = face_location
+        # Find the best match index
+        best_match_index = np.argmin(distances)
+        min_distance = distances[best_match_index]
         
-        # Draw rectangle
-        cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
-        
-        # Draw label background
-        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
-        
-        # Draw text
-        font = cv2.FONT_HERSHEY_DUPLEX
-        if name and confidence:
-            text = f"{name} ({confidence:.1f}%)"
-        elif name:
-            text = name
-        else:
-            text = "Unknown"
-        
-        cv2.putText(frame, text, (left + 6, bottom - 6), font, 0.6, (255, 255, 255), 1)
-        
-        return frame
-    
-    def save_encoding(self, encoding, filepath):
-        """
-        Save face encoding to file
-        """
-        Path(filepath).parent.mkdir(parents=True, exist_ok=True)
-        np.save(filepath, encoding)
-    
-    def load_encoding(self, filepath):
-        """
-        Load face encoding from file
-        """
-        if Path(filepath).exists():
-            return np.load(filepath)
-        return None
+        # DEBUG: Print the closest match distance to console
+        # This helps debug why a face might be "Unknown"
+        best_match_id_debug = known_ids[best_match_index]
+        print(f"DEBUG: Best match: {best_match_id_debug}, Distance: {min_distance:.4f}, Threshold: {tolerance}")
+
+        # Check if the best match is within tolerance
+        if min_distance <= tolerance:
+            best_match_id = known_ids[best_match_index]
+            
+            # Calculate a user-friendly "confidence" score (0-100%)
+            # This is not a probability, but a normalized distance score.
+            # 0.0 dist -> 100% conf
+            # tolerance dist -> 0% conf
+            if min_distance > tolerance:
+                confidence = 0.0
+            else:
+                confidence = max(0, (1.0 - (min_distance / tolerance)) * 100)
+            
+            return best_match_id, confidence, min_distance
+            
+        return None, 0.0, min_distance
+
+    def save_encoding(self, encoding, path):
+        """Save encoding to a binary pickle file"""
+        try:
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
+            with open(path, 'wb') as f:
+                pickle.dump(encoding, f)
+        except Exception as e:
+            print(f"Error saving encoding to {path}: {e}")
+
+    def load_encoding(self, path):
+        """Load encoding from a binary pickle file"""
+        try:
+            if not Path(path).exists():
+                return None
+            with open(path, 'rb') as f:
+                return pickle.load(f)
+        except Exception as e:
+            print(f"Error loading encoding from {path}: {e}")
+            return None

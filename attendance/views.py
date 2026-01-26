@@ -1,10 +1,10 @@
 """
-Attendance Views
+Attendance Views - Multi-Tenant Aware
 """
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from datetime import date, datetime, timedelta
+from django.contrib import messages
+from datetime import date, datetime
 from .models import AttendanceRecord, DailyAttendanceSummary
 from employees.models import Employee
 from .services import AttendanceService
@@ -13,14 +13,19 @@ attendance_service = AttendanceService()
 
 @login_required
 def attendance_history(request):
-    """View attendance history with filters"""
+    """View attendance history - Company Isolated"""
+    if not request.user.company:
+        return redirect('dashboard')
+
     # Get filter parameters
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     employee_id = request.GET.get('employee_id')
     
-    # Base queryset
-    records = AttendanceRecord.objects.select_related(
+    # Base queryset - Filter by Company
+    records = AttendanceRecord.objects.filter(
+        employee__company=request.user.company
+    ).select_related(
         'employee', 'camera'
     ).order_by('-timestamp')
     
@@ -34,11 +39,14 @@ def attendance_history(request):
     if employee_id:
         records = records.filter(employee__employee_id=employee_id)
     
-    # Limit results
+    # Limit results for performance
     records = records[:100]
     
-    # Get all employees for filter dropdown
-    employees = Employee.objects.filter(status='active').order_by('employee_id')
+    # Get employees for filter dropdown (Only own company)
+    employees = Employee.objects.filter(
+        company=request.user.company, 
+        status='active'
+    ).order_by('employee_id')
     
     context = {
         'records': records,
@@ -52,23 +60,30 @@ def attendance_history(request):
 
 @login_required
 def daily_summary(request):
-    """View daily attendance summary"""
+    """View daily attendance summary - Company Isolated"""
+    if not request.user.company:
+        return redirect('dashboard')
+
     # Get date parameter or use today
     date_str = request.GET.get('date')
     if date_str:
         selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     else:
-        # Use local date to align with timezone-aware records
         from django.utils import timezone
         selected_date = timezone.localdate()
     
-    # Get summaries for the date
+    # Get summaries for the date (Filter by Company)
     summaries = DailyAttendanceSummary.objects.filter(
+        employee__company=request.user.company,
         date=selected_date
     ).select_related('employee', 'employee__department').order_by('employee__employee_id')
     
-    # Calculate statistics
-    total_employees = Employee.objects.filter(status='active').count()
+    # Calculate statistics for THIS company
+    total_employees = Employee.objects.filter(
+        company=request.user.company, 
+        status='active'
+    ).count()
+    
     present_count = summaries.filter(is_present=True).count()
     absent_count = total_employees - present_count
     late_count = summaries.filter(is_late=True).count()
@@ -88,19 +103,19 @@ def daily_summary(request):
 @login_required
 def employee_attendance_detail(request, employee_id):
     """Detailed attendance view for a specific employee"""
-    employee = get_object_or_404(Employee, employee_id=employee_id)
+    # Ensure employee belongs to user's company
+    employee = get_object_or_404(
+        Employee, 
+        employee_id=employee_id, 
+        company=request.user.company
+    )
     
-    # Get month and year parameters with validation
+    # Get month and year parameters
     try:
         month = int(request.GET.get('month', date.today().month))
-        if month < 1 or month > 12:
-            raise ValueError
-    except (TypeError, ValueError):
-        month = date.today().month
-    
-    try:
         year = int(request.GET.get('year', date.today().year))
     except (TypeError, ValueError):
+        month = date.today().month
         year = date.today().year
     
     # Get monthly summaries

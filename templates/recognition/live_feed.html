@@ -1,91 +1,210 @@
 {% extends 'base.html' %}
 
-{% block title %}Live Recognition - FaceCognition{% endblock %}
+{% block title %}Live Recognition - FaceTrace{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Live Face Recognition</h1>
-    <button class="btn btn-primary" onclick="refreshEncodings()">
-        <i class="fas fa-sync-alt"></i> Refresh Encodings
-    </button>
-</div>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Main Video Area -->
+        <div class="col-md-9">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-video me-2"></i>Live Camera Feed</h5>
+                    <span class="badge bg-success" id="status-badge">Active</span>
+                </div>
+                <div class="card-body p-0 bg-black text-center position-relative" style="min-height: 480px;">
+                    
+                    <!-- 1. The Smooth Local Video (Hidden direct view, we draw to canvas for control) -->
+                    <video id="videoElement" autoplay playsinline style="display:none;"></video>
+                    
+                    <!-- 2. The Output Canvas (Video + Overlay) -->
+                    <canvas id="outputCanvas" style="width: 100%; max-width: 800px; height: auto;"></canvas>
+                    
+                    <!-- Loading Spinner -->
+                    <div id="loading" class="position-absolute top-50 start-50 translate-middle text-white">
+                        <div class="spinner-border" role="status"></div>
+                        <p class="mt-2">Starting Camera...</p>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">Framerate: <span id="fps-counter">0</span> FPS</small>
+                        <small class="text-muted">Processing Latency: <span id="latency-counter">0</span> ms</small>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<div class="row">
-    <div class="col-md-9">
-        <div class="card">
-            <div class="card-header bg-dark text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-video"></i> Camera Feed
-                    {% if camera %}
-                        - {{ camera.name }}
-                    {% else %}
-                        - Webcam
-                    {% endif %}
-                </h5>
-            </div>
-            <div class="card-body p-0 text-center" style="background-color: #000;">
-                <img src="{% url 'video_feed' %}" width="100%" style="max-width: 800px;">
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3">
-        <div class="card mb-3">
-            <div class="card-header bg-info text-white">
-                <h6 class="mb-0">System Status</h6>
-            </div>
-            <div class="card-body">
-                <p class="mb-2">
-                    <strong>Encodings Loaded:</strong><br>
-                    <span class="badge bg-success">{{ encodings_count }} employees</span>
-                </p>
-                <p class="mb-2">
-                    <strong>Camera Status:</strong><br>
-                    <span class="badge bg-success">Active</span>
-                </p>
-                <p class="mb-0">
-                    <strong>Recognition:</strong><br>
-                    <span class="badge bg-primary">Real-time</span>
-                </p>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header bg-warning">
-                <h6 class="mb-0">Instructions</h6>
-            </div>
-            <div class="card-body">
-                <ul class="small mb-0">
-                    <li>Position face in front of camera</li>
-                    <li>Green box = Recognized</li>
-                    <li>Red box = Unknown</li>
-                    <li>Attendance auto-marked at 70%+ confidence</li>
-                    <li>Minimum 5 min between punches</li>
-                </ul>
+        <!-- Sidebar / Logs -->
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="mb-0">Recent Detections</h6>
+                </div>
+                <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
+                    <ul class="list-group list-group-flush" id="log-list">
+                        <li class="list-group-item text-center text-muted small">Waiting for faces...</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="alert alert-info mt-4">
-    <i class="fas fa-info-circle"></i>
-    <strong>Note:</strong> The system automatically detects faces and marks attendance when confidence is above 70%.
-    Make sure employees are properly registered with clear face images for best results.
-</div>
-{% endblock %}
+{% csrf_token %}
 
-{% block extra_js %}
 <script>
-function refreshEncodings() {
-    fetch('{% url "refresh_encodings" %}')
-        .then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        })
-        .catch(error => {
-            alert('Error refreshing encodings');
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('outputCanvas');
+    const ctx = canvas.getContext('2d');
+    const loading = document.getElementById('loading');
+    const logList = document.getElementById('log-list');
+    const fpsCounter = document.getElementById('fps-counter');
+    const latencyCounter = document.getElementById('latency-counter');
+    
+    // Config
+    const SEND_INTERVAL_MS = 300; // Send frame to server every 300ms (approx 3 FPS processing)
+    let lastDetections = [];
+    let isProcessing = false;
+    let frameCount = 0;
+    let lastLoop = new Date();
+
+    // 1. Start Camera
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { width: 640, height: 480, facingMode: "user" } 
+            });
+            video.srcObject = stream;
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                loading.style.display = 'none';
+                requestAnimationFrame(drawLoop);
+                setInterval(sendFrameToServer, SEND_INTERVAL_MS);
+            };
+        } catch (err) {
+            console.error("Camera Error:", err);
+            loading.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Camera Error: ${err.message}</span>`;
+        }
+    }
+
+    // 2. The Draw Loop (Runs at 60 FPS for smooth video)
+    function drawLoop() {
+        // Draw video frame
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Draw Recognition Boxes (from last known server response)
+        lastDetections.forEach(face => {
+            const { box, name, confidence } = face;
+            const color = name === "Unknown" ? "#dc3545" : "#28a745"; // Red or Green
+            
+            // Box
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(box.left, box.top, box.right - box.left, box.bottom - box.top);
+            
+            // Label Bg
+            ctx.fillStyle = color;
+            ctx.fillRect(box.left, box.bottom - 25, box.right - box.left, 25);
+            
+            // Label Text
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "16px Arial";
+            ctx.fillText(`${name} (${confidence}%)`, box.left + 5, box.bottom - 7);
         });
-}
+
+        // Calculate FPS
+        const thisLoop = new Date();
+        const fps = 1000 / (thisLoop - lastLoop);
+        lastLoop = thisLoop;
+        if (frameCount++ % 30 === 0) fpsCounter.innerText = fps.toFixed(1);
+
+        requestAnimationFrame(drawLoop);
+    }
+
+    // 3. Send Frame to Server (Runs in background)
+    async function sendFrameToServer() {
+        if (isProcessing) return; // Don't stack requests
+        isProcessing = true;
+        const startTime = Date.now();
+
+        // Capture current frame as Base64
+        // Create a small temp canvas for resize (optimization)
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 320; // Send smaller image to save bandwidth
+        tempCanvas.height = 240;
+        tempCanvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
+        const imageData = tempCanvas.toDataURL('image/jpeg', 0.6);
+
+        try {
+            const response = await fetch("{% url 'recognize_frame_api' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ image: imageData })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Update boxes (Need to scale up coordinates because we sent 320x240 but display 640x480)
+                // Actually the API returns coords based on sent image size.
+                // If we send 320x240, API sees 320x240. 
+                // Display is 640x480. So we multiply by 2.
+                const displayScaleX = canvas.width / 320;
+                const displayScaleY = canvas.height / 240;
+
+                lastDetections = data.faces.map(f => ({
+                    ...f,
+                    box: {
+                        top: f.box.top * displayScaleY,
+                        right: f.box.right * displayScaleX,
+                        bottom: f.box.bottom * displayScaleY,
+                        left: f.box.left * displayScaleX
+                    }
+                }));
+                
+                updateLog(lastDetections);
+            }
+        } catch (err) {
+            console.error("API Error:", err);
+        } finally {
+            latencyCounter.innerText = Date.now() - startTime;
+            isProcessing = false;
+        }
+    }
+    
+    // Helper: Update Sidebar Log
+    function updateLog(faces) {
+        if (faces.length === 0) return;
+        
+        // Clear old logs if too many
+        if (logList.children.length > 10) logList.innerHTML = '';
+        
+        faces.forEach(f => {
+            if (f.name === "Unknown") return;
+            
+            const time = new Date().toLocaleTimeString();
+            const html = `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-bold text-success">${f.name}</span>
+                        <div class="small text-muted">${time}</div>
+                    </div>
+                    <span class="badge bg-light text-dark">${f.confidence}%</span>
+                </li>
+            `;
+            // Check if last log is same person to avoid spam
+            const lastLog = logList.firstElementChild;
+            if (!lastLog || !lastLog.innerHTML.includes(f.name)) {
+                logList.insertAdjacentHTML('afterbegin', html);
+            }
+        });
+    }
+
+    // Init
+    startCamera();
 </script>
 {% endblock %}
